@@ -10,6 +10,11 @@ var json = [];
 
 fs.readFile( INPUT, { encoding: 'utf-8' }, function( err, file ){
 
+	if( err ){
+		console.log( err );
+		return;
+	}
+
 	var rows = file.split( '\n' );
 
 	rows.splice( 0, 1 );//remove the headers
@@ -43,15 +48,17 @@ fs.readFile( INPUT, { encoding: 'utf-8' }, function( err, file ){
 
 		data[ country ][ region ].push( postcode );
 
-/*		{
-			eng: {
-				kent: [ 'me15', 'me14' ]
-			}
-		}
-*/
 
 	} );
 
+/*
+	Now organised by country/region/postcodes
+		{
+			eng: {
+				city: [ 'me15', 'me14' ]
+			}
+		}
+*/
 	//console.log( data );
 
 	Object.keys( data ).forEach( function( country ){
@@ -75,6 +82,7 @@ fs.readFile( INPUT, { encoding: 'utf-8' }, function( err, file ){
 	} );
 
 /*
+	Now organised as array of countries with regions with postcodes. This will enable us to randomly pick a country/region/postcode
 
 	[
 		{
@@ -95,7 +103,12 @@ fs.readFile( INPUT, { encoding: 'utf-8' }, function( err, file ){
 
 	fs.writeFile( OUTPUT, JSON.stringify( json, null, 2 ), function( err ){
 
-		if( !err ){
+		if( err ){
+
+			console.log( 'Unable to write file: ', err );
+
+		} else {
+
 			console.log( 'File written' );
 		}
 	} );
