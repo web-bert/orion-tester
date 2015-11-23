@@ -7,6 +7,14 @@ var OUTPUT = '../output/data.json';
 var fs = require( 'fs' );
 var data = {};
 var json = [];
+var notAllowedChars = /([^-_a-z0-9]|\s)+/g;
+
+function makeServiceName( input ){
+
+	var lower = input.toLowerCase();
+
+	return lower.replace( notAllowedChars, '-' );
+}
 
 fs.readFile( INPUT, { encoding: 'utf-8' }, function( err, file ){
 
@@ -24,17 +32,17 @@ fs.readFile( INPUT, { encoding: 'utf-8' }, function( err, file ){
 		if( !row.length ){ return; }
 
 		//console.log( row );
-		var items = row.replace( /("|')/g, '' ).split( ',' );
+		var items = row.replace( /"/g, '' ).split( ',' );
 
-		var postcode = items[ 0 ];
-		var eastings = items[ 1 ];
-		var northings = items[ 2 ];
-		var latitude = items[ 3 ];
-		var longitude = items[ 4 ];
-		var town = items[ 5 ];
-		var region = items[ 6 ];
-		var country = items[ 7 ];
-		var countryString = items[ 8 ];
+		var outcode = items[ 0 ].trim().toUpperCase();
+		var eastings = items[ 1 ].trim();
+		var northings = items[ 2 ].trim();
+		var latitude = items[ 3 ].trim();
+		var longitude = items[ 4 ].trim();
+		var town = items[ 5 ].trim();
+		var region = items[ 6 ].trim();
+		var country = items[ 7 ].trim();
+		var countryString = items[ 8 ].trim();
 
 		if( !data[ country ] ){
 
@@ -46,13 +54,12 @@ fs.readFile( INPUT, { encoding: 'utf-8' }, function( err, file ){
 			data[ country ][ region ] = [];
 		}
 
-		data[ country ][ region ].push( postcode );
-
+		data[ country ][ region ].push( outcode );
 
 	} );
 
 /*
-	Now organised by country/region/postcodes
+	Now organised by country/region/outcodes
 		{
 			eng: {
 				city: [ 'me15', 'me14' ]
@@ -66,6 +73,7 @@ fs.readFile( INPUT, { encoding: 'utf-8' }, function( err, file ){
 		var countryData = data[ country ];
 		var countryJson = {
 			name: country,
+			serviceName: makeServiceName( country ),
 			regions: []
 		};
 
@@ -74,7 +82,8 @@ fs.readFile( INPUT, { encoding: 'utf-8' }, function( err, file ){
 			countryJson.regions.push({
 
 				name: region,
-				postcodes: countryData[ region ]
+				serviceName: makeServiceName( region ),
+				outcodes: countryData[ region ]
 			});
 		} );
 
@@ -82,7 +91,7 @@ fs.readFile( INPUT, { encoding: 'utf-8' }, function( err, file ){
 	} );
 
 /*
-	Now organised as array of countries with regions with postcodes. This will enable us to randomly pick a country/region/postcode
+	Now organised as array of countries with regions with outcodes. This will enable us to randomly pick a country/region/outcode
 
 	[
 		{
