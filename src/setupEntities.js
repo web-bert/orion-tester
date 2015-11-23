@@ -2,19 +2,25 @@
 
 /*jshint node:true */
 
-var data = require( '../output/data' );
 var http = require( 'http' );
 var util = require( 'util' );
+
+var data = require( '../output/data' );
+var config = require( './config' );
+var getRandomItem = require( './lib/getRandomItem' );
 var getRandomOutcode = require( './lib/getRandomOutcode' );
 
-var requiredEntities = 5;
+//var requiredEntities = config.entities;
+var requiredEntities = 100;
 var i = 0;
 
 function getRandomServicePath(){
 
 	var json = getRandomOutcode( data );
+	var lot = getRandomItem( json.outcode.parkingLots );
+	var space = getRandomItem( lot.spaces );
 
-	return util.format( '/%s/%s/%s', json.townData.serviceName, json.regionData.serviceName, json.outcode );
+	return util.format( '/%s/%s/%s/%s/%s', json.townData.serviceName, json.regionData.serviceName, json.outcode.code, lot.serviceName, space.serviceName );
 }
 
 if( data && data.length ){
