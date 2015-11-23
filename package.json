@@ -4,7 +4,8 @@
   "description": "Setting up and testing the orion context broker",
   "main": "index.js",
   "scripts": {
-    "data": "cd data && ./createTownList.js"
+    "data": "cd data && ./createTownList.js",
+    "setup": "cd src && ./setupEntities.js"
   },
   "author": "Graham Veal",
   "license": "ISC",
