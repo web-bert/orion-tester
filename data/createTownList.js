@@ -2,7 +2,7 @@
 
 /*jshint node:true */
 
-var INPUT = '../data/postcodes.csv';
+var INPUT = './postcodes.csv';
 var OUTPUT = '../output/data.json';
 var fs = require( 'fs' );
 var data = {};

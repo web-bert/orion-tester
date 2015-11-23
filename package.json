@@ -4,7 +4,7 @@
   "description": "Setting up and testing the orion context broker",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "data": "cd data && ./createTownList.js"
   },
   "author": "Graham Veal",
   "license": "ISC",
