@@ -4,7 +4,7 @@ var sendRequest = require( './sendBrokerRequest' );
 
 function addServicePathHeader( servicePath, headers ){
 
-	if( servicePath.charAt( 0 ) !== '/' ){
+	if( servicePath && servicePath.charAt( 0 ) !== '/' ){
 
 		servicePath = '/' + servicePath;
 	}
@@ -19,6 +19,8 @@ function sendRequests( path, servicePaths, cb ){
 	var totalRequests = servicePathKeys.length;
 	var requestsCompleted = 0;
 	var errors = [];
+	var currentIndex = 0;
+	var concurrentRequests = 10;
 
 	function handleResponse( err ){
 
@@ -33,10 +35,16 @@ function sendRequests( path, servicePaths, cb ){
 
 			console.log( '%s requests sent, %s error(s)', totalRequests, errors.length );
 			cb( errors );
+
+		} else {
+
+			doNextRequest();
 		}
 	}
 
-	servicePathKeys.forEach( function( servicePath, index ){
+	function doNextRequest(){
+
+		var servicePath = servicePathKeys[ currentIndex++ ];
 
 		//console.log( servicePath, servicePaths[ servicePath ] );
 		var json = servicePaths[ servicePath ];
@@ -53,7 +61,12 @@ function sendRequests( path, servicePaths, cb ){
 		// if( index === lastIndex ){
 		// 	cb();
 		// }
-	} );
+	}
+
+	for( ; concurrentRequests > 0; concurrentRequests-- ){
+
+		doNextRequest();
+	}
 }
 
 module.exports = {

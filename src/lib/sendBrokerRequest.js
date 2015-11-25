@@ -20,9 +20,9 @@ module.exports = function sendRequest( cb, options ){
 		headers[ 'Content-Length' ] = postData.length;
 	}
 
-	//console.log( 'Send request to: %s:%s/%s with headers %s and data %s', HOST, PORT, options.path, util.inspect( headers ), util.inspect( options.data ) );
-	//cb();
-	//return;
+	console.log( 'Send request to: %s:%s/%s with headers %s and data %s', HOST, PORT, options.path, util.inspect( headers ), util.inspect( options.data ) );
+	setTimeout( cb, 800 + Math.floor( Math.random() * 1000 ) );
+	return;
 
 	var req = http.request( {
 

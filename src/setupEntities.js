@@ -18,7 +18,8 @@ function minimiseData(){
 	//console.log( require( 'util' ).inspect( data, { depth: 10 } ) );
 }
 
-minimiseData();
+// Use minimiseData for testing to cut the dataset down to one space per country
+//minimiseData();
 
 if( data && data.length ){
 
