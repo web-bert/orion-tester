@@ -20,7 +20,10 @@ function sendRequests( path, servicePaths, cb ){
 	var requestsCompleted = 0;
 	var errors = [];
 	var currentIndex = 0;
-	var concurrentRequests = 10;
+	var concurrentRequests = 40;
+	var requestsSent = 0;
+	var startTime = ( new Date() ).getTime();
+	var batchStartTime = ( new Date() ).getTime();
 
 	function handleResponse( err ){
 
@@ -29,14 +32,21 @@ function sendRequests( path, servicePaths, cb ){
 		if( err ){
 
 			errors.push( err );
+			console.log( errors );
 		}
 
-		if( requestsCompleted === totalRequests ){
+		if( ( errors.length && requestsCompleted === requestsSent ) || requestsCompleted === totalRequests ){
 
-			console.log( '%s requests sent, %s error(s)', totalRequests, errors.length );
+			console.log( '%s requests sent in %s seconds, %s error(s)', totalRequests, ( ( new Date() ).getTime() - startTime ) / 1000, errors.length );
 			cb( errors );
 
 		} else {
+
+			if( requestsCompleted % 1000 === 0 ){
+
+				console.log( '%s requests completed in %s seconds', requestsCompleted, ( ( new Date() ).getTime() - batchStartTime ) / 1000 );
+				batchStartTime = ( new Date() ).getTime();
+			}
 
 			doNextRequest();
 		}
@@ -50,18 +60,22 @@ function sendRequests( path, servicePaths, cb ){
 		var json = servicePaths[ servicePath ];
 		var headers = {};
 
-		addServicePathHeader( servicePath, headers );
+		if( servicePath && json ){
 
-		sendRequest( handleResponse, {
-			method: 'POST',
-			path: path,
-			data: json,
-			headers: headers
-		} );
-		// if( index === lastIndex ){
-		// 	cb();
-		// }
+			addServicePathHeader( servicePath, headers );
+
+			requestsSent++;
+
+			sendRequest( handleResponse, {
+				method: 'POST',
+				path: path,
+				data: json,
+				headers: headers
+			} );
+		}
 	}
+
+	console.log( 'Sending %s requests, %s at a time', totalRequests, concurrentRequests );
 
 	for( ; concurrentRequests > 0; concurrentRequests-- ){
 
