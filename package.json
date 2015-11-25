@@ -9,5 +9,8 @@
   },
   "author": "Graham Veal",
   "license": "ISC",
-  "private": true
+  "private": true,
+  "dependencies": {
+    "random-string": "^0.1.2"
+  }
 }

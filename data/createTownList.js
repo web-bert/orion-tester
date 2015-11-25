@@ -19,7 +19,7 @@ function makeServiceName( input ){
 
 	var lower = input.toLowerCase();
 
-	return lower.replace( notAllowedChars, '-' );
+	return lower.replace( notAllowedChars, '_' );
 }
 
 function createData( file ){
@@ -34,30 +34,36 @@ function createData( file ){
 		if( !row.length ){ return; }
 
 		//console.log( row );
-		var items = row.replace( /"/g, '' ).split( ',' );
+		var items = row.split( '","' ).map( function( item ){
 
-		var outcode = items[ 0 ].trim().toUpperCase();
-		var eastings = items[ 1 ].trim();
-		var northings = items[ 2 ].trim();
-		var latitude = items[ 3 ].trim();
-		var longitude = items[ 4 ].trim();
-		var town = items[ 5 ].trim();
-		var region = items[ 6 ].trim();
-		var country = items[ 7 ].trim();
-		var countryString = items[ 8 ].trim();
+			return item.replace( /"/g, '' ).trim();
 
-		if( !data[ countryString ] ){
+		} );
 
-			data[ countryString ] = {};
+		var outcode = items[ 0 ].toUpperCase();
+		//var eastings = items[ 1 ];
+		//var northings = items[ 2 ];
+		//var latitude = items[ 3 ];
+		//var longitude = items[ 4 ];
+		//var town = items[ 5 ];
+		var region = items[ 6 ];
+		//var country = items[ 7 ];
+		var countryString = items[ 8 ];
+
+		if( outcode && region && countryString ){
+
+			if( !data[ countryString ] ){
+
+				data[ countryString ] = {};
+			}
+
+			if( !data[ countryString ][ region ] ){
+
+				data[ countryString ][ region ] = [];
+			}
+
+			data[ countryString ][ region ].push( outcode );	
 		}
-
-		if( !data[ countryString ][ region ] ){
-
-			data[ countryString ][ region ] = [];
-		}
-
-		data[ countryString ][ region ].push( outcode );
-
 	} );
 
 	/*
@@ -95,7 +101,7 @@ function createJson( data ){
 				outcodes: countryData[ region ].map( function( code ){
 
 					return {
-						code: code,
+						serviceName: code,
 						parkingLots: []
 					};
 
@@ -116,7 +122,7 @@ function createJson( data ){
 				regions: [
 					{
 						name: "city name 1",
-						serviceName: "city-name-1",
+						serviceName: "city_name_1",
 						outcodes: [ {
 							code: "CN1",
 							parkingLots: []
@@ -126,7 +132,7 @@ function createJson( data ){
 						}//etc
 					},{
 						name: "city name 2",
-						serviceName: "city-name-2",
+						serviceName: "city_name_2",
 						outcodes: [ {
 							code: "CM1",
 							parkingLots: []
@@ -187,10 +193,10 @@ function addParkingLot( parkingLots ){
 	var index = parkingLots.length;
 
 	parkingLots[ index ] = {
-		serviceName: ( 'lot-' + index ),
+		serviceName: ( 'lot_' + index ),
 		spaces: [
 			{
-				serviceName: 'space-0'
+				id: 0
 			}
 		]
 	};
@@ -203,7 +209,7 @@ function addSpace( lot ){
 	var index = lot.spaces.length;
 
 	lot.spaces[ index ] = {
-		serviceName: 'space-' + index
+		id: index
 	};
 }
 

@@ -2,35 +2,52 @@
 
 /*jshint node:true */
 
-var http = require( 'http' );
-var util = require( 'util' );
-
 var data = require( '../output/data' );
-var config = require( './config' );
-var getRandomItem = require( './lib/getRandomItem' );
-var getRandomOutcode = require( './lib/getRandomOutcode' );
+var contextBroker = require( './lib/contextBroker' );
 
-//var requiredEntities = config.entities;
-var requiredEntities = 100;
-var i = 0;
+function minimiseData(){
 
-function getRandomServicePath(){
+	data.forEach( function( country ){
 
-	var json = getRandomOutcode( data );
-	var lot = getRandomItem( json.outcode.parkingLots );
-	var space = getRandomItem( lot.spaces );
+		country.regions.splice( 1, country.regions.length );
+		country.regions[ 0 ].outcodes.splice( 1, country.regions[ 0 ].outcodes.length );
+		country.regions[ 0 ].outcodes[ 0 ].parkingLots.splice( 1, country.regions[ 0 ].outcodes[ 0 ].parkingLots.length );
+		country.regions[ 0 ].outcodes[ 0 ].parkingLots[ 0 ].spaces.splice( 1, country.regions[ 0 ].outcodes[ 0 ].parkingLots[ 0 ].spaces.length );
+	} );
 
-	return util.format( '/%s/%s/%s/%s/%s', json.townData.serviceName, json.regionData.serviceName, json.outcode.code, lot.serviceName, space.serviceName );
+	//console.log( require( 'util' ).inspect( data, { depth: 10 } ) );
 }
+
+minimiseData();
 
 if( data && data.length ){
 
-	for( ; i < requiredEntities; i++ ){
+	console.log( 'About to create contexts...' );
 
-		var path = getRandomServicePath();
+	contextBroker.createContexts( data, function( errors ){
 
-		console.log( path );
-	}
+		if( errors.length ){
+
+			console.log( 'Unable to create entities', errors );
+
+		} else {
+
+			console.log( 'Entities created, now updating entities...' );
+
+			contextBroker.initialiseContexts( data, function( errors ){
+
+				if( errors.length ){
+
+					console.log( 'Unable to update entities', errors );
+
+				} else {
+
+					console.log( 'Setup complete' );
+				}
+			} );
+		}
+		
+	} );
 
 } else {
 
