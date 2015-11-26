@@ -33,7 +33,7 @@ if( data && data.length ){
 
 		} else {
 
-			console.log( 'Entities created, now updating entities...' );
+			console.log( '\nEntities created, now updating entities...' );
 
 			contextBroker.initialiseContexts( data, function( errors ){
 

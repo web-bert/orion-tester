@@ -3,5 +3,10 @@
 		"host": "192.168.57.147",
 		"port": "1026"
 	},
-	"entities": 500000
+	"entities": 500000,
+	"batch": {
+		"concurrentRequests": 12,
+		"size": 5000,
+		"interval": 3000
+	}
 }

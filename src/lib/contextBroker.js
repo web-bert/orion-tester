@@ -1,4 +1,5 @@
 
+var config = require( '../config' );
 var brokerJson = require( './brokerJson' );
 var sendRequest = require( './sendBrokerRequest' );
 
@@ -20,10 +21,12 @@ function sendRequests( path, servicePaths, cb ){
 	var requestsCompleted = 0;
 	var errors = [];
 	var currentIndex = 0;
-	var concurrentRequests = 40;
+	var concurrentRequests = config.batch.concurrentRequests;
 	var requestsSent = 0;
 	var startTime = ( new Date() ).getTime();
 	var batchStartTime = ( new Date() ).getTime();
+	var pauseBatchMin = config.batch.size;
+	var pauseBatchMax = config.batch.size;
 
 	function handleResponse( err ){
 
@@ -42,13 +45,27 @@ function sendRequests( path, servicePaths, cb ){
 
 		} else {
 
-			if( requestsCompleted % 1000 === 0 ){
+			if( requestsCompleted % config.batch.size === 0 ){
 
-				console.log( '%s requests completed in %s seconds', requestsCompleted, ( ( new Date() ).getTime() - batchStartTime ) / 1000 );
-				batchStartTime = ( new Date() ).getTime();
+				console.log( 'Requests %s - %s completed in %s seconds', requestsCompleted - config.batch.size, requestsCompleted, ( ( new Date() ).getTime() - batchStartTime ) / 1000 );
+				batchStartTime = ( new Date() ).getTime() + config.batch.interval;
+				startTime = ( startTime + config.batch.interval );
+
+				pauseBatchMin = requestsCompleted;
+				pauseBatchMax = requestsCompleted + config.batch.concurrentRequests;
+
+				console.log( 'Pausing between requests %s and %s for %s seconds', pauseBatchMin, pauseBatchMax, config.batch.interval / 1000  );
+			} 
+
+			if( requestsCompleted >= pauseBatchMin && requestsCompleted <= pauseBatchMax ){
+
+				//console.log( 'Pausing request %s', requestsCompleted );
+				setTimeout( doNextRequest, config.batch.interval );
+
+			} else {
+
+				doNextRequest();
 			}
-
-			doNextRequest();
 		}
 	}
 
