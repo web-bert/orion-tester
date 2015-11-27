@@ -44,6 +44,12 @@ module.exports = function sendRequest( cb, options ){
 
 		res.on( 'end', function(){
 			//console.log( 'Response received. Status: %s, body: %s', res.statusCode, data );
+			try {
+
+				data = JSON.parse( data );
+
+			} catch( e ){}
+
 			cb( null, { status: res.statusCode, body: data } );
 		} );
 	} );

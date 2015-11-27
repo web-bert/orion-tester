@@ -80,7 +80,7 @@ DataModel.prototype.getRandomSpace = function( parkingLot ){
 	return getRandomItem( parkingLot.spaces );
 };
 
-DataModel.prototype.getRandomOutcodeData = function(){
+DataModel.prototype.pickRandomOutcode = function(){
 	
 	var country =  this.getRandomCountry();
 	var region = this.getRandomRegion( country );
@@ -92,7 +92,7 @@ DataModel.prototype.getRandomOutcodeData = function(){
 	};
 };
 
-DataModel.prototype.getRandomParkingLotData = function(){
+DataModel.prototype.pickRandomParkingLot = function(){
 	
 	var country =  this.getRandomCountry();
 	var region = this.getRandomRegion( country );
@@ -106,6 +106,26 @@ DataModel.prototype.getRandomParkingLotData = function(){
 			region: region,
 			outcode: outcode,
 			parkingLot: lot
+		}
+	};
+};
+
+DataModel.prototype.pickRandomSpace = function(){
+	
+	var country =  this.getRandomCountry();
+	var region = this.getRandomRegion( country );
+	var outcode = this.getRandomOutcode( region );
+	var lot = this.getRandomParkingLot( outcode );
+	var space = this.getRandomSpace( lot );
+
+	return {
+		servicePath: getServicePath( country, region, outcode, lot, space ),
+		data: {
+			country: country,
+			region: region,
+			outcode: outcode,
+			parkingLot: lot,
+			space: space
 		}
 	};
 };

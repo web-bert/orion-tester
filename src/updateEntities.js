@@ -2,47 +2,89 @@
 
 /*jshint node:true */
 
-var util = require( 'util' );
 var randomString = require( 'random-string' );
 
-var data = require( '../output/data' );
 var config = require( './config' );
-var getRandomItem = require( './lib/getRandomItem' );
-var getRandomOutcode = require( './lib/getRandomOutcode' );
+var data = require( '../output/data' );
 var contextBroker = require( './lib/contextBroker' );
+var DataModel = require( './lib/DataModel' );
+var dataModel = new DataModel( data );
 
-//var requiredEntities = config.entities;
-var requiredEntities = 1;
+var updatesToMake = Number( process.argv[ 2 ] ) || 50;
+var concurrentRequests = config.batch.concurrentRequests;
+var requestsComplete = 0;
+var requestsSent = 0;
 var i = 0;
+var startTime = Date.now();
+var errors = [];
+var longestRequestTime = 0;
+var shortestRequestTime = 0;
 
-function getRandomSpace(){
+function handleResponse( err, res, requestStartTime ){
 
-	var json = getRandomOutcode( data );
-	var lot = getRandomItem( json.outcode.parkingLots );
-	var space = getRandomItem( lot.spaces );
+	var now = Date.now();
+	var requestTime = ( now - requestStartTime );
+	var totalRequestTime;
 
-	return {
-		servicePath: util.format( '/%s/%s/%s/%s', json.townData.serviceName, json.regionData.serviceName, json.outcode.serviceName, lot.serviceName ),
-		space: space
-	};
+	requestsComplete++;
+	//console.log( err, res );
+	//console.log( 'Sent: %s, complete: %s', requestsSent, requestsComplete );
+	longestRequestTime = ( longestRequestTime === 0 ? requestTime : Math.max( longestRequestTime, requestTime ) );
+	shortestRequestTime = ( shortestRequestTime === 0 ? requestTime : Math.min( shortestRequestTime, requestTime ) );
+
+	if( !err && res.body.code !== "200" ){
+
+		errors.push( res );
+	}
+
+	if( requestsSent === updatesToMake ){
+
+		if( requestsSent === requestsComplete ){
+
+			totalRequestTime = ( now - startTime );
+
+			console.log( 'Done making updates. Total time taken: %s seconds', totalRequestTime / 1000 );
+			console.log( 'Average time per request = %s miliseconds', Math.ceil( totalRequestTime / requestsSent ) );
+			console.log( 'Average requests per second = %s', Math.floor( requestsSent / ( totalRequestTime / 1000 ) ) );
+			console.log( 'Longest request = %s miliseconds', longestRequestTime );
+			console.log( 'Shortest request = %s miliseconds', shortestRequestTime );
+
+			if( errors.length ){
+
+				console.log( '%s errors received', errors.length );
+				console.log( errors );
+			}
+		}
+
+	} else {
+
+		doNextRequest();
+	}
 }
 
-function handleResponse( err, res ){
+function doNextRequest(){
 
-	console.log( err, res );
+	var state = randomString( { length: 16 } );
+	var spaceInfo = dataModel.pickRandomSpace();
+	var requestStartTime = Date.now();
+
+	//console.log( requestsSent, spaceInfo.servicePath, state );
+
+	requestsSent++;
+	//contextBroker.updateState( '/scotland/aberdeen_city/AB10/lot_0', 0, state, handleResponse );
+	contextBroker.updateState( spaceInfo.servicePath, spaceInfo.data.space.id, state, function( err, res ){
+
+		handleResponse( err, res, requestStartTime );
+	} );
 }
 
-if( data && data.length ){
+if( dataModel.hasData() ){
 
-	for( ; i < requiredEntities; i++ ){
+	console.log( 'Making %s update requests, %s at a time', updatesToMake, concurrentRequests );
 
-		var spaceData = getRandomSpace();
-		var state = randomString( { length: 16 } );
+	for( ; i < concurrentRequests; i++ ){
 
-		//console.log( spaceData, state );
-
-		contextBroker.updateState( '/scotland/aberdeen_city/AB10/lot_0', 0, state, handleResponse );
-		//contextBroker.updateState( spaceData.servicePath, spaceData.space.id, state, handleResponse );
+		doNextRequest();
 	}
 
 } else {
