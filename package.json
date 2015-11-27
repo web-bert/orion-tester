@@ -1,6 +1,6 @@
 {
   "name": "orion-tester",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Setting up and testing the orion context broker",
   "main": "index.js",
   "scripts": {
