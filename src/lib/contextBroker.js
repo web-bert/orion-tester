@@ -13,7 +13,7 @@ function addServicePathHeader( servicePath, headers ){
 	headers[ 'Fiware-ServicePath' ] = servicePath;
 }
 
-function sendRequests( path, servicePaths, cb ){
+function sendRequests( path, servicePaths, cb, timeRequests ){
 
 	var servicePathKeys = Object.keys( servicePaths );
 	//var lastIndex = servicePathKeys.length - 1;
@@ -27,8 +27,10 @@ function sendRequests( path, servicePaths, cb ){
 	var batchStartTime = ( new Date() ).getTime();
 	var pauseBatchMin = config.batch.size;
 	var pauseBatchMax = config.batch.size;
+	var longestRequestTime = 0;
+	var shortestRequestTime = 0;
 
-	function handleResponse( err ){
+	function handleResponse( err, requestStartTime ){
 
 		requestsCompleted++;
 
@@ -38,9 +40,40 @@ function sendRequests( path, servicePaths, cb ){
 			console.log( errors );
 		}
 
+		if( requestStartTime ){
+
+			var requestTime = ( ( new Date() ).getTime() - requestStartTime ) ;
+
+			//console.log( 'Request took: %s miliseconds', requestTime );
+
+			if( Math.floor( requestsCompleted % ( totalRequests / 10 ) ) === 0 ){
+
+				var percentComplete = Math.floor( ( requestsCompleted / totalRequests ) * 100 );
+
+				if( percentComplete < 100 ){
+
+					console.log( '%s% complete...', percentComplete );
+				}
+			}
+
+			longestRequestTime = ( longestRequestTime === 0 ? requestTime : Math.max( longestRequestTime, requestTime ) );
+			shortestRequestTime = ( shortestRequestTime === 0 ? requestTime : Math.min( shortestRequestTime, requestTime ) );
+		}
+
 		if( ( errors.length && requestsCompleted === requestsSent ) || requestsCompleted === totalRequests ){
 
-			console.log( '%s requests sent in %s seconds, %s error(s)', totalRequests, ( ( new Date() ).getTime() - startTime ) / 1000, errors.length );
+			var totalRequestTime = ( ( new Date() ).getTime() - startTime );
+
+			console.log( '%s requests sent in %s seconds, %s error(s)', totalRequests, totalRequestTime / 1000, errors.length );
+
+			if( timeRequests ){
+
+				console.log( 'Average time per request = %s miliseconds', Math.ceil( totalRequestTime / totalRequests ) );
+				console.log( 'Average requests per second = %s', Math.floor( totalRequests / ( totalRequestTime / 1000 ) ) );
+				console.log( 'Longest request = %s miliseconds', longestRequestTime );
+				console.log( 'Shortest request = %s miliseconds', shortestRequestTime );
+			}
+
 			cb( errors );
 
 		} else {
@@ -76,6 +109,18 @@ function sendRequests( path, servicePaths, cb ){
 		//console.log( servicePath, servicePaths[ servicePath ] );
 		var json = servicePaths[ servicePath ];
 		var headers = {};
+		var responseHandler = handleResponse;
+		var requestStartTime;
+
+		if( timeRequests ){
+
+			requestStartTime = ( new Date() ).getTime();
+
+			responseHandler = function( err ){
+
+				handleResponse( err, requestStartTime );
+			};
+		}
 
 		if( servicePath && json ){
 
@@ -83,7 +128,7 @@ function sendRequests( path, servicePaths, cb ){
 
 			requestsSent++;
 
-			sendRequest( handleResponse, {
+			sendRequest( responseHandler, {
 				method: 'POST',
 				path: path,
 				data: json,
@@ -129,22 +174,6 @@ module.exports = {
 		} );
 	},
 
-	createContexts: function( data, cb ){
-
-		var path = '/v1/registry/registerContext';
-		var servicePaths = brokerJson.createContexts( data );
-		
-		sendRequests( path, servicePaths, cb );
-	},
-
-	initialiseContexts: function( data, cb ){
-
-		var path = 'v1/updateContext';
-		var servicePaths = brokerJson.updateContexts( data );
-		
-		sendRequests( path, servicePaths, cb );
-	},
-
 	updateState: function( servicePath, spaceId, state, cb ){
 
 		var path = 'v1/contextEntities/parking_space_' + spaceId + '/attributes/availability';
@@ -159,5 +188,29 @@ module.exports = {
 			data: json,
 			headers: headers
 		} );
+	},
+
+	createContexts: function( dataModel, cb ){
+
+		var path = '/v1/registry/registerContext';
+		var servicePaths = brokerJson.createContexts( dataModel );
+		
+		sendRequests( path, servicePaths, cb );
+	},
+
+	initialiseContexts: function( dataModel, cb ){
+
+		var path = 'v1/updateContext';
+		var servicePaths = brokerJson.updateContexts( dataModel );
+		
+		sendRequests( path, servicePaths, cb );
+	},
+
+	queryContexts: function( dataModel, cb ){
+
+		var path = '/v1/registry/discoverContextAvailability';
+		var servicePaths = brokerJson.getContexts( dataModel );
+
+		sendRequests( path, servicePaths, cb, true );
 	}
 };

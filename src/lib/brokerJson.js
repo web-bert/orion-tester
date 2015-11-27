@@ -1,26 +1,5 @@
 /* jshint quotmark: false */
 
-function loopData( data, cb ){
-
-	//console.log( data );
-
-	data.forEach( function( country ){
-
-		country.regions.forEach( function( region ){
-
-			region.outcodes.forEach( function( outcode ){
-
-				outcode.parkingLots.forEach( function( lot ){
-
-					var servicePath = [ country.serviceName, region.serviceName, outcode.serviceName, lot.serviceName ].join( '/' );
-					
-					cb( servicePath, country, region, outcode, lot );
-				} );
-			} );
-		} );
-	} );
-}
-
 function createRegistration(){
 
 	return {
@@ -43,11 +22,11 @@ function createRegistration(){
 
 module.exports = {
 
-	createContexts: function( data ){
+	createContexts: function( dataModel ){
 
 		var dataPaths = {};
 
-		loopData( data, function( servicePath, country, region, outcode, lot ){
+		dataModel.forEachParkingLot( function( servicePath, country, region, outcode, lot ){
 
 			var json = createRegistration();
 
@@ -67,11 +46,11 @@ module.exports = {
 		return dataPaths;
 	},
 
-	updateContexts: function( data ){
+	updateContexts: function( dataModel ){
 
 		var dataPaths = {};
 
-		loopData( data, function( servicePath, country, region, outcode, lot ){
+		dataModel.forEachParkingLot( function( servicePath, country, region, outcode, lot ){
 			
 			var json = {
 				"contextElements": [],
@@ -106,5 +85,27 @@ module.exports = {
 		return {
 			value: state
 		};
+	},
+
+	getContexts: function( dataModel ){
+
+		var dataPaths = {};
+
+		dataModel.forEachParkingLot( function( servicePath, country, region, outcode, lot ){
+
+			var json = {
+				"entities": [
+					{
+						"type": "parking_space",
+						"isPattern": "true",
+						"id": "parking_space_.*"
+					}
+				]
+			};
+
+			dataPaths[ servicePath ] = json;
+		} );
+
+		return dataPaths;
 	}
 };

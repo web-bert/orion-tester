@@ -3,29 +3,17 @@
 /*jshint node:true */
 
 var data = require( '../output/data' );
+var DataModel = require( './lib/DataModel' );
 var contextBroker = require( './lib/contextBroker' );
+var dataModel = new DataModel( data );
+// For testing cut the dataset down to one space per country
+//dataModel.oneSpaceEach();
 
-function minimiseData(){
-
-	data.forEach( function( country ){
-
-		country.regions.splice( 1, country.regions.length );
-		country.regions[ 0 ].outcodes.splice( 1, country.regions[ 0 ].outcodes.length );
-		country.regions[ 0 ].outcodes[ 0 ].parkingLots.splice( 1, country.regions[ 0 ].outcodes[ 0 ].parkingLots.length );
-		country.regions[ 0 ].outcodes[ 0 ].parkingLots[ 0 ].spaces.splice( 1, country.regions[ 0 ].outcodes[ 0 ].parkingLots[ 0 ].spaces.length );
-	} );
-
-	//console.log( require( 'util' ).inspect( data, { depth: 10 } ) );
-}
-
-// Use minimiseData for testing to cut the dataset down to one space per country
-//minimiseData();
-
-if( data && data.length ){
-
+if( dataModel.hasData() ){
+	
 	console.log( 'About to create contexts...' );
 
-	contextBroker.createContexts( data, function( errors ){
+	contextBroker.createContexts( dataModel, function( errors ){
 
 		if( errors.length ){
 
@@ -35,7 +23,7 @@ if( data && data.length ){
 
 			console.log( '\nEntities created, now updating entities...' );
 
-			contextBroker.initialiseContexts( data, function( errors ){
+			contextBroker.initialiseContexts( dataModel, function( errors ){
 
 				if( errors.length ){
 
