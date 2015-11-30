@@ -113,21 +113,24 @@ DataModel.prototype.pickRandomParkingLot = function(){
 DataModel.prototype.pickRandomSpace = function(){
 	
 	var country =  this.getRandomCountry();
-	var region = this.getRandomRegion( country );
-	var outcode = this.getRandomOutcode( region );
-	var lot = this.getRandomParkingLot( outcode );
-	var space = this.getRandomSpace( lot );
+	var region = country && this.getRandomRegion( country );
+	var outcode = region && this.getRandomOutcode( region );
+	var lot = outcode && this.getRandomParkingLot( outcode );
+	var space = lot && this.getRandomSpace( lot );
 
-	return {
-		servicePath: getServicePath( country, region, outcode, lot, space ),
-		data: {
-			country: country,
-			region: region,
-			outcode: outcode,
-			parkingLot: lot,
-			space: space
-		}
-	};
+	if( space ){
+
+		return {
+			servicePath: getServicePath( country, region, outcode, lot, space ),
+			data: {
+				country: country,
+				region: region,
+				outcode: outcode,
+				parkingLot: lot,
+				space: space
+			}
+		};
+	}
 };
 
 DataModel.prototype.oneSpaceEach = function(){

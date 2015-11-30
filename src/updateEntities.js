@@ -19,6 +19,7 @@ var startTime = Date.now();
 var errors = [];
 var longestRequestTime = 0;
 var shortestRequestTime = 0;
+var logPercentage = ( updatesToMake > 50 );
 
 function handleResponse( err, res, requestStartTime ){
 
@@ -37,6 +38,16 @@ function handleResponse( err, res, requestStartTime ){
 		errors.push( res );
 	}
 
+	if( logPercentage && Math.floor( requestsComplete % ( updatesToMake / 10 ) ) === 0 ){
+
+		var percentComplete = Math.floor( ( requestsComplete / updatesToMake ) * 100 );
+
+		if( percentComplete < 100 ){
+
+			console.log( '%s% complete, elapsed time: %s seconds', percentComplete, ( now - startTime ) / 1000 );
+		}
+	}
+
 	if( requestsSent === updatesToMake ){
 
 		if( requestsSent === requestsComplete ){
@@ -51,7 +62,7 @@ function handleResponse( err, res, requestStartTime ){
 
 			if( errors.length ){
 
-				console.log( '%s errors received', errors.length );
+				console.log( '%s error%s received', errors.length, errors.length === 1 ? '' : 's' );
 				console.log( errors );
 			}
 		}
@@ -68,14 +79,22 @@ function doNextRequest(){
 	var spaceInfo = dataModel.pickRandomSpace();
 	var requestStartTime = Date.now();
 
-	//console.log( requestsSent, spaceInfo.servicePath, state );
+	if( spaceInfo ){
 
-	requestsSent++;
-	//contextBroker.updateState( '/scotland/aberdeen_city/AB10/lot_0', 0, state, handleResponse );
-	contextBroker.updateState( spaceInfo.servicePath, spaceInfo.data.space.id, state, function( err, res ){
+		//console.log( requestsSent, spaceInfo.servicePath, state );
 
-		handleResponse( err, res, requestStartTime );
-	} );
+		requestsSent++;
+		//contextBroker.updateState( '/scotland/aberdeen_city/AB10/lot_0', 0, state, handleResponse );
+		contextBroker.updateState( spaceInfo.servicePath, spaceInfo.data.space.id, state, function( err, res ){
+
+			handleResponse( err, res, requestStartTime );
+		} );
+
+	} else {
+
+		console.log( 'Space not found trying another...', spaceInfo );
+		doNextRequest();
+	}
 }
 
 if( dataModel.hasData() ){
