@@ -3,6 +3,7 @@
 /*jshint node:true */
 
 var randomString = require( 'random-string' );
+var util = require( 'util' );
 
 var config = require( './config' );
 var data = require( '../output/data' );
@@ -63,7 +64,7 @@ function handleResponse( err, res, requestStartTime ){
 			if( errors.length ){
 
 				console.log( '%s error%s received', errors.length, errors.length === 1 ? '' : 's' );
-				console.log( errors );
+				console.log( util.inspect( errors, { depth: 6 } ) );
 			}
 		}
 
