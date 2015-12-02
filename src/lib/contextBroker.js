@@ -1,4 +1,5 @@
 
+var util = require( 'util' );
 var config = require( '../config' );
 var brokerJson = require( './brokerJson' );
 var sendRequest = require( './sendBrokerRequest' );
@@ -212,5 +213,51 @@ module.exports = {
 		var servicePaths = brokerJson.getContexts( dataModel );
 
 		sendRequests( path, servicePaths, cb, true );
+	},
+
+	createSubscription: function( servicePath, referenceUrl, cb ){
+
+		var json = {
+				entities: [
+					{
+						type: 'parking_space',
+						isPattern: 'true',
+						id: 'parking_space_.*'
+					}
+				],
+				attributes: [
+					'availability'
+				],
+				reference: referenceUrl,
+				duration: 'P1M',
+				notifyConditions: [
+					{
+						type: 'ONCHANGE',
+						condValues: [
+							'availability'
+						]
+					}
+				]
+			};
+
+		console.log( 'Creating subscription to: %s', referenceUrl );
+
+		sendRequest( cb, {
+
+			method: 'POST',
+			path: '/v1/subscribeContext',
+			data: json
+
+		} );
+	},
+
+	removeSubscription: function( subscriptionId, cb ){
+
+		sendRequest( cb, {
+
+			method: 'DELETE',
+			path: ( '/v1/contextSubscriptions/' + subscriptionId )
+			
+		});
 	}
 };

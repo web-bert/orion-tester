@@ -11,7 +11,7 @@ var getRandomItem = require( '../src/lib/getRandomItem' );
 var getRandomOutcode = require( '../src/lib/getRandomOutcode' );
 
 var json = [];
-var notAllowedChars = /([^-_a-z0-9]|\s)+/g;
+var notAllowedChars = /([^_a-z0-9]|\s)+/g;
 var primes = [ 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97 ];
 var maxRandomNumber = 100;
 

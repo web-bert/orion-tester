@@ -9,6 +9,10 @@ var dataModel = new DataModel( data );
 // For testing cut the dataset down to one space per country
 //dataModel.oneSpaceEach();
 
+//dataModel.setMaxRegions( 1 );
+//dataModel.setMaxOutCodes( 2 );
+//dataModel.setMaxParkingLots( 2 );
+
 if( dataModel.hasData() ){
 	
 	console.log( 'About to create contexts...' );

@@ -9,9 +9,9 @@ var dataModel = new DataModel( data );
 
 if( dataModel.hasData() ){
 
-	dataModel.setMaxParkingLots( 5 );
-	dataModel.setMaxOutCodes( 5 );
 	dataModel.setMaxRegions( 5 );
+	dataModel.setMaxOutCodes( 5 );
+	dataModel.setMaxParkingLots( 5 );
 
 	console.log( 'About to query contexts...' );
 

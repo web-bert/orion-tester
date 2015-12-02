@@ -3,6 +3,11 @@
 		"host": "192.168.57.147",
 		"port": "1026"
 	},
+	"server": {
+		"orion": {
+			"host": "192.168.57.1"
+		}
+	},
 	"entities": 500000,
 	"batch": {
 		"concurrentRequests": 10,

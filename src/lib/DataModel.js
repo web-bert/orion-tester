@@ -130,6 +130,10 @@ DataModel.prototype.pickRandomSpace = function(){
 				space: space
 			}
 		};
+
+	} else {
+
+		console.log( 'No space found', { country: !!country, region: !!region, outcode: !!outcode, parkingLot: !!lot } );
 	}
 };
 
