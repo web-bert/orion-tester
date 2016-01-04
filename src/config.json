@@ -10,8 +10,9 @@
 	},
 	"entities": 500000,
 	"batch": {
-		"concurrentRequests": 10,
+		"concurrentRequests": 15,
 		"size": 5000,
-		"interval": 3000
+		"interval": 3000,
+		"threads": 0
 	}
 }

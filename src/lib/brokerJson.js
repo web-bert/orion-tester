@@ -107,5 +107,34 @@ module.exports = {
 		} );
 
 		return dataPaths;
+	},
+
+	getContext: function( dataModel ){
+
+		var dataPaths = {};
+
+		dataModel.forEachParkingLot( function( servicePath, country, region, outcode, lot ){
+
+			var space;
+			var i = 0;
+
+			while( ( space = lot.spaces[ i++ ] ) ){
+
+				var json = {
+					"entities": [
+						{
+							"type": "parking_space",
+							"isPattern": "false",
+							"id": "parking_space_" + space.id
+						}
+					]
+				};
+
+				dataPaths[ servicePath ] = json;
+			}
+
+		} );
+
+		return dataPaths;
 	}
 };

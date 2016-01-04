@@ -2,7 +2,54 @@
 var util = require( 'util' );
 var config = require( '../config' );
 var brokerJson = require( './brokerJson' );
-var sendRequest = require( './sendBrokerRequest' );
+var sendBrokerRequest = require( './sendBrokerRequest' );
+var childProcess = require( 'child_process' );
+
+var forkId = 0;
+
+function createFork(){
+	
+	var myForkId = forkId++;
+	var requestId = 0;
+	var requestCallbacks = {};
+	var activeRequests = 0;
+	var child = childProcess.fork( __dirname + '/sendForkedRequest' );
+
+	console.log( 'Creating fork %s...', myForkId );
+
+	child.on( 'message', function( msg ){
+
+		//console.log( 'Message received' );
+
+		var id = msg.id;
+		var err = msg.err;
+		var data = msg.data;
+		var cb = requestCallbacks[ id ];
+
+		activeRequests--;
+		//console.log( 'Active requests for fork %s is: %s', myForkId, activeRequests );
+
+		delete requestCallbacks[ id ];
+
+		cb( err, data );
+
+		if( !activeRequests ){
+
+			child.disconnect();
+			//console.log( 'child process %s terminated', myForkId );
+		}
+	} );
+
+	return function( cb, opts ){
+
+		requestCallbacks[ requestId ] = cb;
+		activeRequests++;
+
+		//console.log( 'Active requests for fork %s is: %s', myForkId, activeRequests );
+
+		child.send( { id: requestId++, opts: opts } );
+	};
+}
 
 function addServicePathHeader( servicePath, headers ){
 
@@ -23,6 +70,8 @@ function sendRequests( path, servicePaths, cb, timeRequests ){
 	var errors = [];
 	var currentIndex = 0;
 	var concurrentRequests = config.batch.concurrentRequests;
+	var threads = config.batch.threads;
+	var threadSendRequest;
 	var requestsSent = 0;
 	var startTime = ( new Date() ).getTime();
 	var batchStartTime = ( new Date() ).getTime();
@@ -31,15 +80,9 @@ function sendRequests( path, servicePaths, cb, timeRequests ){
 	var longestRequestTime = 0;
 	var shortestRequestTime = 0;
 
-	function handleResponse( err, requestStartTime ){
+	function handleResponse( err, data, sendRequest, requestStartTime ){
 
 		requestsCompleted++;
-
-		if( err ){
-
-			errors.push( err );
-			console.log( errors );
-		}
 
 		if( requestStartTime ){
 
@@ -47,21 +90,31 @@ function sendRequests( path, servicePaths, cb, timeRequests ){
 
 			//console.log( 'Request took: %s miliseconds', requestTime );
 
-			if( Math.floor( requestsCompleted % ( totalRequests / 10 ) ) === 0 ){
-
-				var percentComplete = Math.floor( ( requestsCompleted / totalRequests ) * 100 );
-
-				if( percentComplete < 100 ){
-
-					console.log( '%s% complete...', percentComplete );
-				}
-			}
-
 			longestRequestTime = ( longestRequestTime === 0 ? requestTime : Math.max( longestRequestTime, requestTime ) );
 			shortestRequestTime = ( shortestRequestTime === 0 ? requestTime : Math.min( shortestRequestTime, requestTime ) );
 		}
 
-		if( ( errors.length && requestsCompleted === requestsSent ) || requestsCompleted === totalRequests ){
+		if( err || data && data.body && ( data.body.errorCode || data.body.orionError ) ){
+
+			errors.push( { err: err, data: data } );
+			console.log( errors );
+
+		} else {
+
+			//console.log( data );
+		}
+
+		if( Math.floor( requestsCompleted % ( totalRequests / 10 ) ) === 0 ){
+
+			var percentComplete = Math.floor( ( requestsCompleted / totalRequests ) * 100 );
+
+			if( percentComplete < 100 ){
+
+				console.log( '%s% complete...', percentComplete );
+			}
+		}
+		
+		if( requestsCompleted === totalRequests ){
 
 			var totalRequestTime = ( ( new Date() ).getTime() - startTime );
 
@@ -94,34 +147,38 @@ function sendRequests( path, servicePaths, cb, timeRequests ){
 			if( requestsCompleted >= pauseBatchMin && requestsCompleted <= pauseBatchMax ){
 
 				//console.log( 'Pausing request %s', requestsCompleted );
-				setTimeout( doNextRequest, config.batch.interval );
+				setTimeout( function(){
+
+					doNextRequest( sendRequest );
+
+				}, config.batch.interval );
 
 			} else {
 
-				doNextRequest();
+				doNextRequest( sendRequest );
 			}
 		}
 	}
 
-	function doNextRequest(){
+	function doNextRequest( sendRequest ){
 
 		var servicePath = servicePathKeys[ currentIndex++ ];
 
 		//console.log( servicePath, servicePaths[ servicePath ] );
 		var json = servicePaths[ servicePath ];
 		var headers = {};
-		var responseHandler = handleResponse;
+		var responseHandler;
 		var requestStartTime;
 
 		if( timeRequests ){
 
 			requestStartTime = ( new Date() ).getTime();
-
-			responseHandler = function( err ){
-
-				handleResponse( err, requestStartTime );
-			};
 		}
+
+		responseHandler = function( err, data ){
+
+			handleResponse( err, data, sendRequest, requestStartTime );
+		};
 
 		if( servicePath && json ){
 
@@ -138,11 +195,27 @@ function sendRequests( path, servicePaths, cb, timeRequests ){
 		}
 	}
 
-	console.log( 'Sending %s requests, %s at a time', totalRequests, concurrentRequests );
+	console.log( 'Sending %s requests, %s at a time with %s threads', totalRequests, concurrentRequests, threads );
 
-	for( ; concurrentRequests > 0; concurrentRequests-- ){
+	if( threads > 0 ){
 
-		doNextRequest();
+		while( threads-- ){
+
+			concurrentRequests = config.batch.concurrentRequests;
+			threadSendRequest = createFork();
+
+			for( ; concurrentRequests > 0; concurrentRequests-- ){
+
+				doNextRequest( threadSendRequest );
+			}
+		}
+
+	} else {
+
+		for( ; concurrentRequests > 0; concurrentRequests-- ){
+
+			doNextRequest( sendBrokerRequest );
+		}
 	}
 }
 
@@ -167,7 +240,7 @@ module.exports = {
 			addServicePathHeader( servicePath, headers );
 		}
 
-		sendRequest( cb, {
+		sendBrokerRequest( cb, {
 			method: 'POST',
 			path: path,
 			data: json,
@@ -183,7 +256,7 @@ module.exports = {
 
 		addServicePathHeader( servicePath, headers );
 
-		sendRequest( cb, {
+		sendBrokerRequest( cb, {
 			method: 'PUT',
 			path: path,
 			data: json,
@@ -209,9 +282,18 @@ module.exports = {
 
 	queryContexts: function( dataModel, cb ){
 
-		var path = '/v1/registry/discoverContextAvailability';
+		var path = '/v1/queryContext';
 		var servicePaths = brokerJson.getContexts( dataModel );
 
+		sendRequests( path, servicePaths, cb, true );
+	},
+
+	queryContext: function( dataModel, cb ){
+
+		var path = '/v1/queryContext';
+		var servicePaths = brokerJson.getContext( dataModel );
+
+		//console.log( JSON.stringify( servicePaths, null, 2 ) );
 		sendRequests( path, servicePaths, cb, true );
 	},
 
@@ -242,7 +324,7 @@ module.exports = {
 
 		console.log( 'Creating subscription to: %s', referenceUrl );
 
-		sendRequest( cb, {
+		sendBrokerRequest( cb, {
 
 			method: 'POST',
 			path: '/v1/subscribeContext',
@@ -253,7 +335,7 @@ module.exports = {
 
 	removeSubscription: function( subscriptionId, cb ){
 
-		sendRequest( cb, {
+		sendBrokerRequest( cb, {
 
 			method: 'DELETE',
 			path: ( '/v1/contextSubscriptions/' + subscriptionId )
