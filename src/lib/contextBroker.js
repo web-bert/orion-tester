@@ -6,6 +6,7 @@ var sendBrokerRequest = require( './sendBrokerRequest' );
 var childProcess = require( 'child_process' );
 
 var forkId = 0;
+var requestsSent = 0;
 
 function createFork(){
 	
@@ -31,13 +32,14 @@ function createFork(){
 
 		delete requestCallbacks[ id ];
 
-		cb( err, data );
-
-		if( !activeRequests ){
+		//console.log( 'Fork: %s, active: %s', myForkId, activeRequests );
+		if( !activeRequests && requestsSent === totalRequests ){
 
 			child.disconnect();
-			//console.log( 'child process %s terminated', myForkId );
+			console.log( 'child process %s terminated', myForkId );
 		}
+
+		cb( err, data );
 	} );
 
 	return function( cb, opts ){
@@ -65,20 +67,17 @@ function sendRequests( path, servicePaths, cb, timeRequests ){
 
 	var servicePathKeys = Object.keys( servicePaths );
 	//var lastIndex = servicePathKeys.length - 1;
-	var totalRequests = servicePathKeys.length;
 	var requestsCompleted = 0;
 	var errors = [];
 	var currentIndex = 0;
 	var concurrentRequests = config.batch.concurrentRequests;
 	var threads = config.batch.threads;
 	var threadSendRequest;
-	var requestsSent = 0;
 	var startTime = ( new Date() ).getTime();
-	var batchStartTime = ( new Date() ).getTime();
-	var pauseBatchMin = config.batch.size;
-	var pauseBatchMax = config.batch.size;
 	var longestRequestTime = 0;
 	var shortestRequestTime = 0;
+
+	totalRequests = servicePathKeys.length;
 
 	function handleResponse( err, data, sendRequest, requestStartTime ){
 
@@ -97,7 +96,7 @@ function sendRequests( path, servicePaths, cb, timeRequests ){
 		if( err || data && data.body && ( data.body.errorCode || data.body.orionError ) ){
 
 			errors.push( { err: err, data: data } );
-			console.log( errors );
+			console.log( JSON.stringify( errors ) );
 
 		} else {
 
@@ -132,31 +131,7 @@ function sendRequests( path, servicePaths, cb, timeRequests ){
 
 		} else {
 
-			if( requestsCompleted % config.batch.size === 0 ){
-
-				console.log( 'Requests %s - %s completed in %s seconds', requestsCompleted - config.batch.size, requestsCompleted, ( ( new Date() ).getTime() - batchStartTime ) / 1000 );
-				batchStartTime = ( new Date() ).getTime() + config.batch.interval;
-				startTime = ( startTime + config.batch.interval );
-
-				pauseBatchMin = requestsCompleted;
-				pauseBatchMax = requestsCompleted + config.batch.concurrentRequests;
-
-				console.log( 'Pausing between requests %s and %s for %s seconds', pauseBatchMin, pauseBatchMax, config.batch.interval / 1000  );
-			} 
-
-			if( requestsCompleted >= pauseBatchMin && requestsCompleted <= pauseBatchMax ){
-
-				//console.log( 'Pausing request %s', requestsCompleted );
-				setTimeout( function(){
-
-					doNextRequest( sendRequest );
-
-				}, config.batch.interval );
-
-			} else {
-
-				doNextRequest( sendRequest );
-			}
+			doNextRequest( sendRequest );
 		}
 	}
 

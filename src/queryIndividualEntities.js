@@ -9,7 +9,7 @@ var dataModel = new DataModel( data );
 
 if( dataModel.hasData() ){
 
-	dataModel.setMaxRegions( 1 );
+	dataModel.setMaxRegions( 10 );
 	dataModel.setMaxOutCodes( 5 );
 	dataModel.setMaxParkingLots( 5 );
 
