@@ -79,7 +79,11 @@ Once the data has been sent to Orion we have some scripts to update or query tha
 
 ### src/queryEntities.js
 
-This will query the state of each entity in the dataset, again for simplified testing the methods on the DataModel can be used to reduce the amount of tests. Conncurrency of the queries is controlled in the config.json file.
+This will query the state of all parking spaces in a parking lot in the dataset (i.e. uses a pattern to find all entities in a paring lot), again for simplified testing the methods on the DataModel can be used to reduce the amount of tests. Conncurrency of the queries is controlled in the config.json file.
+
+### src/queryIndividualEntities.js.js
+
+This will query the state of each individual entity in the dataset, again for simplified testing the methods on the DataModel can be used to reduce the amount of tests. Conncurrency of the queries is controlled in the config.json file.
 
 ### src/updateEntities.js
 
